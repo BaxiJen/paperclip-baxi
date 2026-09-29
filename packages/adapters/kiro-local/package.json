@@ -14,7 +14,8 @@
     "dist/index.js",
     "dist/index.js.LEGAL.txt",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "dist/THIRD-PARTY-NOTICES.txt"
   ],
   "scripts": {
     "build": "node build.mjs",
