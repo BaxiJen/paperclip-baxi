@@ -1,3 +1,17 @@
+# Paperclip BaXiJen
+
+BaXiJen's fork of [Paperclip](https://github.com/paperclipai/paperclip), based on
+`v2026.916.1`. It adds the BXat Buriti visual identity and a separately loadable
+[local Kiro adapter](packages/adapters/kiro-local/README.md).
+
+Paperclip remains the upstream project. Its MIT license and copyright are retained.
+Geist fonts use the [SIL Open Font License](ui/public/fonts/Geist-OFL.txt).
+The BaXiJen name and mark identify this fork; they do not imply upstream endorsement.
+
+See [fork maintenance and deployment](doc/BAXIJEN.md) before replacing an installation.
+
+---
+
 <p align="center">
   <img src="doc/assets/banner.jpg" alt="Paperclip is the app people use to manage AI agents for work." width="720" />
 </p>

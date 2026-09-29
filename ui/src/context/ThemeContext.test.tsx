@@ -79,8 +79,7 @@ describe("ThemeContext", () => {
     document.body.innerHTML = "";
   });
 
-  it("follows OS prefers-color-scheme changes while no explicit choice has been made", () => {
-    document.documentElement.classList.add("dark");
+  it("keeps the light brand default when the OS theme changes", () => {
     const mql = installMatchMedia(true);
 
     const root = createRoot(container);
@@ -92,9 +91,9 @@ describe("ThemeContext", () => {
       );
     });
 
-    expect(observedTheme).toBe("dark");
-    expect(document.documentElement.classList.contains("dark")).toBe(true);
-    expect(mql.listenerCount()).toBe(1);
+    expect(observedTheme).toBe("light");
+    expect(document.documentElement.classList.contains("dark")).toBe(false);
+    expect(mql.listenerCount()).toBe(0);
 
     act(() => {
       mql.dispatch(false);
@@ -106,7 +105,7 @@ describe("ThemeContext", () => {
     act(() => {
       mql.dispatch(true);
     });
-    expect(observedTheme).toBe("dark");
+    expect(observedTheme).toBe("light");
     expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBeNull();
 
     act(() => {
@@ -114,7 +113,7 @@ describe("ThemeContext", () => {
     });
   });
 
-  it("stops listening to OS changes after the user makes an explicit choice", () => {
+  it("persists explicit theme choices and ignores OS changes", () => {
     document.documentElement.classList.add("dark");
     const mql = installMatchMedia(true);
 
@@ -127,7 +126,7 @@ describe("ThemeContext", () => {
       );
     });
 
-    expect(mql.listenerCount()).toBe(1);
+    expect(mql.listenerCount()).toBe(0);
 
     act(() => {
       setTheme?.("light");

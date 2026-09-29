@@ -92,3 +92,9 @@ tokenize motion. Principles — reasoning only; values live in `ui/src/index.css
 - **Reduced motion is honored at the token layer.** A `prefers-reduced-motion: reduce`
   block collapses the duration/stagger tokens to zero, cascading to every scoped token,
   in addition to each animation's own component-level guard.
+
+## BaXiJen fork identity
+
+The BaXiJen fork uses the BXat Buriti palette and Geist. The implementation and
+validation scope is in [the fork plan](doc/plans/2026-09-29-baxijen-kiro.md).
+Semantic tokens remain in `ui/src/index.css`; component values stay token-based.

@@ -2513,7 +2513,7 @@ function OnboardingWizardInner({
                       // sentence restating it only pushes the fields down.
                       lede={
                         step === 3 ? undefined : step === 4 ? (
-                          <>Paperclip works with your subscription or API keys.</>
+                          <>BaXiJen works with your subscription or API keys.</>
                         ) : (
                           <>{agentName.trim() || "Your first agent"} is ready to work!</>
                         )
@@ -2537,7 +2537,7 @@ function OnboardingWizardInner({
                   <OnboardingHeading
                     center
                     title="What is the name of your organization?"
-                    lede="Welcome to Paperclip — let's set up your organization."
+                    lede="Welcome to BaXiJen. Let's set up your organization."
                   />
                   {/* The field takes the agent step's measure rather than the
                       column's, so the two questions the wizard asks — name the
