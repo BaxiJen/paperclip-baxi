@@ -5,10 +5,10 @@ import { authApi } from "../api/auth";
 import { queryKeys } from "../lib/queryKeys";
 import { getRememberedInvitePath } from "../lib/invite-memory";
 import { Button } from "@/components/ui/button";
-import { AsciiArtAnimation } from "@/components/AsciiArtAnimation";
 import { PaperclipLoading } from "@/components/AnimatedPaperclipIcon";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { PaperclipLockup } from "../components/PaperclipLockup";
+import { BaXiJenBrand, BaXiJenMark, PaperclipAttribution } from "../components/BaXiJenBrand";
+import { BRAND_NAME } from "../lib/brand";
 
 type AuthMode = "sign_in" | "sign_up";
 
@@ -89,11 +89,11 @@ export function AuthPage() {
       <div className="w-full md:w-1/2 flex flex-col overflow-y-auto">
         <div className="w-full max-w-md mx-auto my-auto px-8 py-12">
           <div className="mb-8">
-            <PaperclipLockup className="h-5 w-auto" />
+            <BaXiJenBrand />
           </div>
 
           <h1 className="text-xl font-semibold">
-            {mode === "sign_in" ? "Sign in to Paperclip" : "Create your Paperclip account"}
+            {mode === "sign_in" ? `Sign in to ${BRAND_NAME}` : `Create your ${BRAND_NAME} account`}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {mode === "sign_in"
@@ -198,12 +198,17 @@ export function AuthPage() {
               {mode === "sign_in" ? "Create one" : "Sign in"}
             </button>
           </div>
+          <PaperclipAttribution className="mt-8 inline-block md:hidden" />
         </div>
       </div>
 
-      {/* Right half — ASCII art animation (hidden on mobile) */}
-      <div className="hidden md:block w-1/2 overflow-hidden">
-        <AsciiArtAnimation />
+      <div className="hidden md:flex w-1/2 flex-col items-center justify-center gap-8 bg-secondary border-l border-border p-12">
+        <BaXiJenMark className="h-48 w-48 text-primary" />
+        <div className="text-center space-y-3">
+          <p className="text-3xl font-semibold tracking-tight text-foreground">Agentes, trabalhando juntos.</p>
+          <p className="text-base text-muted-foreground">Planeje. Execute. Revise.</p>
+        </div>
+        <PaperclipAttribution />
       </div>
     </div>
   );

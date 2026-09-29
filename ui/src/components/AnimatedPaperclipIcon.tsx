@@ -1,4 +1,5 @@
 import type { SVGProps } from "react";
+import { BaXiJenMark } from "./BaXiJenBrand";
 import { cn } from "../lib/utils";
 
 export function AnimatedPaperclipIcon({ className, ...props }: SVGProps<SVGSVGElement>) {
@@ -22,14 +23,14 @@ export function AnimatedPaperclipIcon({ className, ...props }: SVGProps<SVGSVGEl
   );
 }
 
-/** Full-page loading state: a large, centered, gray animated paperclip. */
+/** Full-page loading state: the brand mark and an accessible status. */
 export function PaperclipLoading({ className }: { className?: string }) {
   return (
     <div
       role="status"
       className={cn("flex min-h-dvh w-full items-center justify-center", className)}
     >
-      <AnimatedPaperclipIcon className="h-24 w-24 text-muted-foreground" />
+      <BaXiJenMark className="h-24 w-24 text-primary motion-safe:animate-pulse" />
       <span className="sr-only">Loading…</span>
     </div>
   );

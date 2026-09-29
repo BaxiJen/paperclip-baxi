@@ -1,0 +1,40 @@
+{
+  "name": "@baxijen/paperclip-adapter-kiro",
+  "version": "0.1.0",
+  "description": "BaXiJen local Kiro CLI adapter for Paperclip",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist/index.js",
+    "dist/index.js.LEGAL.txt",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --config vitest.config.ts",
+    "test:bundle": "node test/bundle-smoke.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11",
+    "@paperclipai/adapter-utils": "workspace:*",
+    "esbuild": "^0.28.2"
+  },
+  "engines": {
+    "node": ">=24.11.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BaxiJen/paperclip-baxi",
+    "directory": "packages/adapters/kiro-local"
+  }
+}

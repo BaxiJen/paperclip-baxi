@@ -50,6 +50,8 @@ import { PluginLauncherOutlet } from "@/plugins/launchers";
 import { SidebarCompanyMenu } from "./SidebarCompanyMenu";
 import { primarySidebarStyles } from "./primary-sidebar-styles";
 
+import { BaXiJenBrand, PaperclipAttribution } from "./BaXiJenBrand";
+
 export function Sidebar({ children }: { children?: ReactNode }) {
   const { openNewIssue } = useDialogActions();
   const { enabled: agentChatEnabled } = useAgentChatEnabled();
@@ -278,6 +280,10 @@ export function Sidebar({ children }: { children?: ReactNode }) {
           missingBehavior="placeholder"
         />
       </nav>
+      <div className="shrink-0 border-t border-sidebar-border px-3 py-3">
+        <BaXiJenBrand compact={rail} />
+        {!rail && <PaperclipAttribution className="mt-1 block" />}
+      </div>
     </aside>
   );
 }
