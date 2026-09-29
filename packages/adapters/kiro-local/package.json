@@ -1,6 +1,6 @@
 {
   "name": "@baxijen/paperclip-adapter-kiro",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "BaXiJen local Kiro CLI adapter for Paperclip",
   "license": "MIT",
   "type": "module",

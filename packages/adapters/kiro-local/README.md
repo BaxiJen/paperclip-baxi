@@ -6,9 +6,17 @@ v2026.916.1. It does not change the database, built-in adapter registry, or auth
 
 ## Status
 
-Implemented and tested with a real subprocess fixture, not an authenticated Kiro account.
-A live smoke test is required before deployment. The version guard accepts Kiro CLI
+Validated on Linux through the Paperclip heartbeat API with Kiro CLI 2.25.0 and
+Builder ID authentication. A read-only agent read a fixture file and returned its
+actual contents with a valid completion and recorded session. The package also has
+22 subprocess and protocol tests. Revalidate authentication and permissions for
+each deployment. The version guard accepts Kiro CLI
 2.24+ within 2.x. Version 3.x must be qualified before extending the guard.
+
+A task-scoped live run also retained its session id, but repeated a previous
+answer after the fixture changed. Session identity is verified; fresh file reads
+on resume are not. Do not treat a successful completion as proof of a tool action.
+Use a fresh session and verify artifacts when validating changed workspace state.
 
 ## Setup
 
@@ -79,6 +87,10 @@ This adapter never reads, copies, or modifies that credential database.
   needs only after reviewing the workload and host containment.
 - The host-issued agent JWT is required. Configuration cannot override `PAPERCLIP_*`.
   Only an allowlist of ambient OS/provider variables reaches the subprocess.
+- Stored operator environment names are validated separately from the controller's
+  enriched execution environment. Unrelated projected variables, GitHub credentials,
+  and process injection variables are not forwarded. Temporary directories come
+  from the controller-owned scratch context; run identity comes from the host JWT.
 - Provider stdout/stderr are captured with a 4 MiB total limit, not streamed into logs.
   Fixed status messages are logged. Known credential values are redacted from the
   returned final summary. Kiro itself may persist local session data; OS isolation,
@@ -87,6 +99,8 @@ This adapter never reads, copies, or modifies that credential database.
   `runError`, malformed completion, timeout, cancellation, and incomplete output fail.
 - Resumed sessions are bound to company, agent, task, real workspace path, profile,
   and adapter settings. A different returned session id fails the run without retry.
+  The host must preserve the full task session parameters. Unscoped manual wakes
+  without those parameters start a new session, even if a previous id is available.
   Reset the Paperclip runtime session after changing a named Kiro agent's model,
   hooks, tools, credentials/account, or instruction contents in place.
 - Output is untrusted text. It is never evaluated as code by the adapter.

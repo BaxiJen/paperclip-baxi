@@ -23,6 +23,8 @@ if (process.argv.includes('--version')) {
     agent: process.env.PAPERCLIP_AGENT_ID, task: process.env.PAPERCLIP_TASK_ID,
     jwt: process.env.PAPERCLIP_API_KEY, cwd: process.env.PAPERCLIP_WORKSPACE_CWD,
     unrelated: process.env.UNRELATED_TEST_SECRET,
+    temp: process.env.TMPDIR, githubToken: process.env.GH_TOKEN,
+    nodeOptions: process.env.NODE_OPTIONS,
   }));
   if (mode === 'hang') {
     process.on('SIGTERM', () => {});
@@ -98,6 +100,22 @@ describe("Kiro external adapter", () => {
     ctx.runtime.taskKey = "another-task";
     expect((await adapter.execute(ctx)).exitCode).toBe(0);
     expect(JSON.parse(await readFile(path.join(directory, "invocation.json"), "utf8")).args).not.toContain("--resume-id");
+  });
+  it("accepts controller-enriched env without forwarding credentials or overriding identity", async () => {
+    ctx.config.env = { KIRO_API_KEY: testSecret, TMPDIR: "/ignored-temp", GH_TOKEN: "host-only", NODE_OPTIONS: "--invalid", PAPERCLIP_API_KEY: "wrong-identity" };
+    ctx.context.paperclipScratch = { dir: directory };
+    const result = await adapter.execute(ctx);
+    expect(result.exitCode).toBe(0);
+    const invocation = JSON.parse(await readFile(path.join(directory, "invocation.json"), "utf8"));
+    expect(invocation.temp).toBe(directory);
+    expect(invocation.githubToken).toBeUndefined();
+    expect(invocation.nodeOptions).toBeUndefined();
+    expect(invocation.jwt).toBe("fixture-agent-jwt");
+  });
+  it("still rejects reserved environment names in the stored operator config", async () => {
+    ctx.agent.adapterConfig = { env: { PAPERCLIP_API_KEY: "operator-override" } };
+    expect((await adapter.execute(ctx)).errorCode).toBe("kiro_configuration_or_launch_failed");
+    expect(ctx.onSpawn).not.toHaveBeenCalled();
   });
   it.each([ ["old", "kiro_unsupported_version"], ["error", "kiro_run_error"], ["empty", "kiro_missing_completion"], ["exit", "kiro_process_failed"], ["flood", "kiro_process_failed"] ])("fails safely for %s", async (value, code) => {
     await mode(value);

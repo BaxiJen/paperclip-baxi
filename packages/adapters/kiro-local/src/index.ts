@@ -8,7 +8,7 @@ import {
   readPaperclipRuntimeSkillEntries, renderPaperclipWakePrompt, renderTemplate,
   selectPaperclipTaskMarkdown, refreshPaperclipWorkspaceEnvForExecution,
 } from "@paperclipai/adapter-utils/server-utils";
-import { parseConfig, record, secretRedactor, supportedVersion, text } from "./config.js";
+import { parseConfig, parseExecutionConfig, record, secretRedactor, supportedVersion, text } from "./config.js";
 import { runProcess } from "./process.js";
 import { parseTerminal } from "./protocol.js";
 
@@ -50,11 +50,15 @@ async function readBounded(file: string) {
 async function execute(ctx: AdapterExecutionContext): Promise<AdapterExecutionResult> {
   try {
     localOnly(ctx);
-    const config = parseConfig(ctx.config);
+    const config = parseExecutionConfig(ctx.config, ctx.agent.adapterConfig);
     const workspace = record(ctx.context.paperclipWorkspace);
     const cwd = await realpath(text(workspace.cwd) || config.cwd);
     if (!path.isAbsolute(cwd) || !(await stat(cwd)).isDirectory()) return failure("kiro_invalid_cwd");
     const env = { ...environment(config.env), ...buildPaperclipEnv(ctx.agent), ...buildRuntimeToolsEnv(ctx.runtimeTools) };
+    const scratch = text(record(ctx.context.paperclipScratch).dir);
+    if (scratch && path.isAbsolute(scratch) && (await stat(scratch)).isDirectory()) {
+      Object.assign(env, { TMPDIR: scratch, TMP: scratch, TEMP: scratch, PAPERCLIP_SCRATCH_DIR: scratch });
+    }
     // Only a host-issued run-scoped JWT may identify this agent to Paperclip.
     if (!ctx.authToken) return failure("kiro_missing_agent_jwt");
     env.PAPERCLIP_API_KEY = ctx.authToken;

@@ -5,6 +5,22 @@ export function record(value: unknown): Record<string, unknown> {
 export function text(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
+const PROVIDER_ENV_KEY = /^(KIRO_API_KEY|KIRO_HOME|AWS_PROFILE|AWS_REGION|AWS_DEFAULT_REGION)$/;
+
+/** The controller adds scratch/git variables after resolving operator config. */
+export function parseExecutionConfig(runtime: Record<string, unknown>, configured: unknown) {
+  const operatorEnv = record(configured).env;
+  if (operatorEnv != null && (typeof operatorEnv !== "object" || Array.isArray(operatorEnv))) {
+    throw new Error("env must be an object");
+  }
+  if (Object.keys(record(operatorEnv)).some((key) => !PROVIDER_ENV_KEY.test(key))) {
+    throw new Error("Unsupported operator environment variable");
+  }
+  // Never forward arbitrary controller/project env or let it replace run identity.
+  const env = Object.fromEntries(Object.entries(record(runtime.env))
+    .filter(([key]) => PROVIDER_ENV_KEY.test(key)));
+  return parseConfig({ ...runtime, env });
+}
 function positive(value: unknown, fallback: number, max: number): number {
   if (value === undefined) return fallback;
   if (typeof value !== "number" || !Number.isFinite(value) || value <= 0 || value > max) {
@@ -28,7 +44,7 @@ export function parseConfig(raw: Record<string, unknown>) {
   const env: Record<string, string> = {};
   for (const [key, value] of Object.entries(record(raw.env))) {
     // Host identity and process injection settings must not be overridden.
-    if (!/^(KIRO_API_KEY|KIRO_HOME|AWS_PROFILE|AWS_REGION|AWS_DEFAULT_REGION)$/.test(key)
+    if (!PROVIDER_ENV_KEY.test(key)
       || typeof value !== "string" || value.includes("\0")) {
       throw new Error("Unsupported environment variable. Only Kiro authentication/profile settings are accepted.");
     }
