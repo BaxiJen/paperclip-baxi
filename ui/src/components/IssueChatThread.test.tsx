@@ -3968,6 +3968,46 @@ describe("IssueChatThread", () => {
     });
   });
 
+  it("sends a task reply without crypto.randomUUID on HTTP", async () => {
+    const getRandomValues = globalThis.crypto.getRandomValues.bind(globalThis.crypto);
+    vi.stubGlobal("crypto", { getRandomValues });
+    const root = createRoot(container);
+    const onAdd = vi.fn().mockResolvedValue(undefined);
+    try {
+      act(() => {
+        root.render(
+          <MemoryRouter>
+            <IssueChatThread
+              comments={[]} linkedRuns={[]} timelineEvents={[]} liveRuns={[]}
+              draftKey="http-task-reply"
+              currentAssigneeValue="agent:agent-1"
+              onAdd={onAdd} enableLiveTranscriptPolling={false}
+            />
+          </MemoryRouter>,
+        );
+      });
+      const editor = container.querySelector<HTMLTextAreaElement>(
+        'textarea[aria-label="Issue chat editor"]',
+      )!;
+      act(() => {
+        Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value")
+          ?.set?.call(editor, "A reply over HTTP");
+        editor.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      const send = Array.from(container.querySelectorAll("button"))
+        .find((element) => element.textContent === "Send")!;
+      await act(async () => send.click());
+      expect(onAdd).toHaveBeenCalledWith(
+        "A reply over HTTP", undefined, undefined, undefined,
+        expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/),
+      );
+      expect(editor.value).toBe("");
+    } finally {
+      act(() => root.unmount());
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("hides the reopen control and infers reopen for closed agent-assigned issue replies", async () => {
     const root = createRoot(container);
     const onAdd = vi.fn().mockResolvedValue(undefined);

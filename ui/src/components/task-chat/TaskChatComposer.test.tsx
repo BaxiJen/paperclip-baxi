@@ -814,6 +814,25 @@ describe("TaskChatComposer", () => {
     expect(editable().dataset.contentClassName).toContain("max-h-(--sz-28dvh)");
   });
 
+  it("sends a task reply without crypto.randomUUID on HTTP", async () => {
+    const getRandomValues = globalThis.crypto.getRandomValues.bind(globalThis.crypto);
+    vi.stubGlobal("crypto", { getRandomValues });
+    try {
+      const onAdd = vi.fn().mockResolvedValue(undefined);
+      render(<TaskChatComposer onAdd={onAdd} workMode="standard" draftKey="http-task-reply" />);
+      typeText("A reply over HTTP");
+      flushSync(() => sendButton().click());
+      await flushAsync();
+      expect(onAdd).toHaveBeenCalledWith(
+        "A reply over HTTP", undefined, undefined, undefined,
+        expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/),
+      );
+      expect(editable().textContent).toBe("");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("submits the trimmed body on Cmd+Enter and clears the draft", async () => {
     const onAdd = vi.fn().mockResolvedValue(undefined);
     render(<TaskChatComposer onAdd={onAdd} workMode="standard" />);
