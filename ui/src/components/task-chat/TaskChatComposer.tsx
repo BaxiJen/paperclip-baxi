@@ -1,3 +1,4 @@
+import { browserUuid } from "@/lib/browser-uuid";
 import {
   useEffect,
   useRef,
@@ -664,7 +665,7 @@ export function TaskChatComposer({
 
   /** Upload an image and return its URL for inline `![](src)` markdown. */
   async function uploadInlineImage(file: File): Promise<string> {
-    const id = crypto.randomUUID();
+    const id = browserUuid();
     setAttachments((prev) => [
       ...prev,
       {
@@ -981,7 +982,7 @@ export function TaskChatComposer({
         setBody(submittedBody);
         return;
       }
-      attemptId = crypto.randomUUID();
+      attemptId = browserUuid();
       if (draftKey) {
         saveDraft(draftKey, submittedBody);
         saveDraftSubmission(draftKey, { attemptId, reviewed: false });
