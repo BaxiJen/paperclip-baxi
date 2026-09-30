@@ -101,6 +101,13 @@ When the request includes `blockedByIssueIds`, the response also includes:
 
 Empty arrays are confirmed-empty state, not missing data. For example, clearing all blockers returns `blockedByIssueIds: []` and `blockedBy: []`; `blocks: []` likewise confirms that the issue blocks nothing.
 
+An explicit `unblockDescriptor` records an additional action or decision needed
+before a blocked task can proceed. Completed dependencies do not satisfy that
+action. Dependency-completion events, restored dependency links and periodic
+reconciliation do not wake a task while this descriptor remains set. Resolve
+the recorded action and clear the descriptor or explicitly resume the task.
+Addressed questions and their existing continuation policies remain available.
+
 For a compact write receipt, request the minimal representation:
 
 ```http
