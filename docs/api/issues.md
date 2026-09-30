@@ -233,6 +233,8 @@ The server snapshots immutable canonical `requestedResolverPolicy` and `effectiv
 
 `addresseeAgentId` optionally targets a same-company agent. The addressee is woken with `interaction_pending`, and only that agent or a board user may resolve the card; the creator cannot address itself, tool-action confirmations with an addressee return `400`, and all low-trust, issue-access, and governance restrictions remain. Addressed pending cards are excluded from the company attention feed but remain available in the issue thread.
 
+An addressed question does not transfer task ownership. Before starting the response run, the scheduler checks the stored card's company, issue, addressee, pending status, and resolver policy. This permits the addressee to answer while the task waits on dependencies or review. It does not release those dependencies, grant checkout rights, or override a task-tree pause. A card that was answered, withdrawn, or addressed to someone else no longer authorizes a queued response run.
+
 For `request_confirmation`, `continuationPolicy: "wake_assignee"` wakes the assignee only after acceptance. Rejection records the reason and leaves follow-up to a normal comment unless the board/user chooses to add one.
 
 ### Resolve Interaction
