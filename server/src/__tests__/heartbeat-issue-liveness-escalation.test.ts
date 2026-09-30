@@ -433,6 +433,33 @@ describeEmbeddedPostgres("heartbeat resolved dependency wake reconciliation", ()
     });
   });
 
+  it.each(["board", "agent"])("preserves an explicit %s unblock action after dependencies complete", async (ownerKind) => {
+    const { companyId, agentId, blockedIssueId, blockerIssueId } =
+      await seedResolvedDependencyBackstopFixture({ workspaceState: "none" });
+    await db.update(issues).set({
+      unblockDescriptor: {
+        owner: ownerKind === "board" ? "board" : { agentId },
+        action: "Await documented availability of the external operator",
+      },
+    }).where(eq(issues.id, blockedIssueId));
+
+    expect(await issueService(db).listWakeableBlockedDependents(blockerIssueId)).toEqual([]);
+    const heartbeat = heartbeatService(db);
+    expect((await heartbeat.reconcileResolvedDependencyWakes()).healed).toBe(0);
+    expect((await heartbeat.reconcileResolvedDependencyWakes({
+      companyId,
+    })).healed).toBe(0);
+    expect(await db.select({ id: agentWakeupRequests.id }).from(agentWakeupRequests)
+      .where(eq(agentWakeupRequests.companyId, companyId))).toEqual([]);
+    expect(await db.select({ status: issues.status }).from(issues)
+      .where(eq(issues.id, blockedIssueId))).toEqual([{ status: "blocked" }]);
+
+    // Resolving the explicit wait restores ordinary dependency scheduling.
+    await db.update(issues).set({ unblockDescriptor: null }).where(eq(issues.id, blockedIssueId));
+    expect(await issueService(db).listWakeableBlockedDependents(blockerIssueId)).toHaveLength(1);
+    expect((await heartbeat.reconcileResolvedDependencyWakes()).healed).toBe(1);
+  });
+
   it("keeps resolved dependency wake reconciliation active", async () => {
     const { companyId, agentId, blockedIssueId, blockerIssueId } =
       await seedResolvedDependencyBackstopFixture({ workspaceState: "none" });

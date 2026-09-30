@@ -101,6 +101,13 @@ When the request includes `blockedByIssueIds`, the response also includes:
 
 Empty arrays are confirmed-empty state, not missing data. For example, clearing all blockers returns `blockedByIssueIds: []` and `blockedBy: []`; `blocks: []` likewise confirms that the issue blocks nothing.
 
+An explicit `unblockDescriptor` records an additional action or decision needed
+before a blocked task can proceed. Completed dependencies do not satisfy that
+action. Dependency-completion events, restored dependency links and periodic
+reconciliation do not wake a task while this descriptor remains set. Resolve
+the recorded action and clear the descriptor or explicitly resume the task.
+Addressed questions and their existing continuation policies remain available.
+
 For a compact write receipt, request the minimal representation:
 
 ```http
@@ -232,6 +239,8 @@ Create accepts optional canonical `resolverPolicy: "anyone" | "not_creator" | "h
 The server snapshots immutable canonical `requestedResolverPolicy` and `effectiveResolverPolicy`, plus their provenance and source, when the interaction is created. `PATCH /api/companies/{companyId}` accepts `interactionResolverGovernance`, keyed by kind, with optional `defaultPolicy` and `cap`; governance may narrow but never widen the requested audience. Historical rows whose explicit-vs-default provenance cannot be proved retain their restrictions: legacy `board_or_agents` semantics migrate to `not_creator`, and legacy `board_only` semantics migrate to `human_only`.
 
 `addresseeAgentId` optionally targets a same-company agent. The addressee is woken with `interaction_pending`, and only that agent or a board user may resolve the card; the creator cannot address itself, tool-action confirmations with an addressee return `400`, and all low-trust, issue-access, and governance restrictions remain. Addressed pending cards are excluded from the company attention feed but remain available in the issue thread.
+
+An addressed question does not transfer task ownership. Before starting the response run, the scheduler checks the stored card's company, issue, addressee, pending status, and resolver policy. This permits the addressee to answer while the task waits on dependencies or review. It does not release those dependencies, grant checkout rights, or override a task-tree pause. A card that was answered, withdrawn, or addressed to someone else no longer authorizes a queued response run.
 
 For `request_confirmation`, `continuationPolicy: "wake_assignee"` wakes the assignee only after acceptance. Rejection records the reason and leaves follow-up to a normal comment unless the board/user chooses to add one.
 

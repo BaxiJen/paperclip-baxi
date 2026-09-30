@@ -12,6 +12,7 @@ import {
   heartbeatRuns,
   issueComments,
   issueDocuments,
+  issueRelations,
   issueThreadInteractions,
   issues,
 } from "@paperclipai/db";
@@ -146,6 +147,9 @@ describeEmbeddedPostgres("heartbeat stale queued-run invalidation", () => {
   let afterContinuationDispatchCheck:
     | ((input: { runId: string; issueId: string }) => Promise<void>)
     | null = null;
+  let beforeChatControlRecoveryCheck:
+    | ((input: { runId: string; issueId: string; stage: "claim" | "dispatch" }) => Promise<void>)
+    | null = null;
 
   const countExecuteCallsForRun = (runId: string) =>
     mockAdapterExecute.mock.calls.filter(([context]) => context?.runId === runId).length;
@@ -161,6 +165,9 @@ describeEmbeddedPostgres("heartbeat stale queued-run invalidation", () => {
       afterResolvedInteractionContinuationDispatchCheck: async (input) => {
         await afterContinuationDispatchCheck?.(input);
       },
+      beforeChatControlRecoveryCheck: async (input) => {
+        await beforeChatControlRecoveryCheck?.(input);
+      },
     });
     await ensureIssueRelationsTable(db);
   }, 20_000);
@@ -168,6 +175,7 @@ describeEmbeddedPostgres("heartbeat stale queued-run invalidation", () => {
   afterEach(async () => {
     beforeContinuationDispatchCheck = null;
     afterContinuationDispatchCheck = null;
+    beforeChatControlRecoveryCheck = null;
     mockAdapterExecute.mockReset();
     mockAdapterExecute.mockImplementation(async () => ({
       exitCode: 0,
@@ -864,6 +872,60 @@ describeEmbeddedPostgres("heartbeat stale queued-run invalidation", () => {
       timerClaimWasFirstHeartbeat: true,
     });
     expect(agent?.lastHeartbeatAt?.getTime()).toBeGreaterThanOrEqual(now.getTime());
+  });
+
+  it.each([false, true])("checks the addressed question again at claim without taking ownership (concurrent answer: %s)", async (answerBeforeClaim) => {
+    const { companyId, agentId } = await seedCompanyAndAgent();
+    const ownerId = randomUUID();
+    const issueId = randomUUID();
+    const blockerId = randomUUID();
+    const interactionId = randomUUID();
+    await db.insert(agents).values({
+      id: ownerId, companyId, name: "Task owner", role: "engineer",
+      status: "active", adapterType: "codex_local", adapterConfig: {},
+    });
+    await db.insert(issues).values([
+      { id: issueId, companyId, title: "Waiting for information", status: "blocked", assigneeAgentId: ownerId },
+      { id: blockerId, companyId, title: "Unresolved prerequisite", status: "todo", assigneeAgentId: ownerId },
+    ]);
+    await db.insert(issueRelations).values({ companyId, issueId: blockerId, relatedIssueId: issueId, type: "blocks" });
+    await db.insert(issueThreadInteractions).values({
+      id: interactionId, companyId, issueId, kind: "ask_user_questions",
+      createdByAgentId: ownerId, addresseeAgentId: agentId,
+      payload: { version: 1, questions: [] },
+    });
+    let claimChecked = false;
+    beforeChatControlRecoveryCheck = async (input) => {
+      if (input.issueId !== issueId || input.stage !== "claim") return;
+      if (answerBeforeClaim) {
+        await db.update(issueThreadInteractions).set({ status: "answered" })
+          .where(eq(issueThreadInteractions.id, interactionId));
+      }
+      claimChecked = true;
+    };
+    const run = await heartbeat.wakeup(agentId, {
+      source: "automation", triggerDetail: "system", reason: "interaction_pending",
+      requestedByActorType: "agent", requestedByActorId: ownerId,
+      payload: { issueId, interactionId, interactionKind: "ask_user_questions", mutation: "interaction" },
+      contextSnapshot: {
+        issueId, interactionId, interactionKind: "ask_user_questions",
+        wakeReason: "interaction_pending", source: "issue.interaction.created",
+      },
+    });
+    expect(run).not.toBeNull();
+    if (!run) throw new Error("expected an addressed question run");
+    if (answerBeforeClaim) {
+      expect(await waitForCondition(async () => claimChecked)).toBe(true);
+      expect(countExecuteCallsForRun(run.id)).toBe(0);
+    } else {
+      await waitForCondition(async () => countExecuteCallsForRun(run.id) > 0);
+      expect(countExecuteCallsForRun(run.id)).toBe(1);
+    }
+    const [issue] = await db.select().from(issues).where(eq(issues.id, issueId));
+    expect(issue?.assigneeAgentId).toBe(ownerId);
+    const [persisted] = await db.select().from(heartbeatRuns).where(eq(heartbeatRuns.id, run.id));
+    expect(persisted?.contextSnapshot).toMatchObject({ dependencyBlockedInteraction: true });
+    if (answerBeforeClaim) expect(persisted?.startedAt).toBeNull();
   });
 
   it("allows generic timer wakes when the agent has assigned todo work", async () => {

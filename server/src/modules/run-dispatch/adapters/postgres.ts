@@ -22,6 +22,7 @@ import { collectDispositionRepairSourceState } from "../../../services/recovery/
 import { appendHeartbeatRunEvent } from "../../../services/heartbeat-run-events.js";
 import { emitAgentTaskRun } from "../../../services/agent-task-run-telemetry.js";
 import { issueService } from "../../../services/issues.js";
+import { isPendingIssueInteractionWake } from "../../../services/issue-interaction-wake.js";
 import {
   issueTreeControlService,
   isVerifiedIssueTreeControlInteractionWake,
@@ -496,7 +497,12 @@ export function createPostgresRunDispatchAdapter(
     const isInteractionWake = allowsIssueInteractionWake(
       context,
       ISSUE_TREE_CONTROL_INTERACTION_WAKE_REASONS,
-    );
+    ) || await isPendingIssueInteractionWake(dbOrTx, {
+      companyId: input.companyId,
+      issueId,
+      agentId: input.agentId,
+      contextSnapshot: context,
+    });
     const resumeIntent = context.resumeIntent === true || context.followUpRequested === true;
     const wakeReason = readNonEmptyString(context.wakeReason);
     const retryReason =

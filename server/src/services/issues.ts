@@ -8984,6 +8984,9 @@ export function issueService(db: Db) {
             eq(issueRelations.type, "blocks"),
             eq(issueRelations.issueId, blockerIssueId),
             isNull(issues.conversationAgentId),
+            // An explicit unblock action is independent of dependency completion.
+            // Preserve it until its owner supplies the missing decision/evidence.
+            isNull(issues.unblockDescriptor),
           ),
         );
       if (candidates.length === 0) return [];
