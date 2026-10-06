@@ -507,6 +507,7 @@ import {
   allowsIssueInteractionWake,
   isResolvedInteractionContinuationWakeContext,
 } from "../modules/run-dispatch/index.js";
+import { isPendingIssueInteractionWake } from "./issue-interaction-wake.js";
 import {
   createWakeQueue,
   WakeQueueApplicationError,
@@ -17150,7 +17151,13 @@ export function heartbeatService(
         !allowsIssueInteractionWake(
           context,
           ISSUE_TREE_CONTROL_INTERACTION_WAKE_REASONS,
-        )
+        ) &&
+        !(await isPendingIssueInteractionWake(db, {
+          companyId: run.companyId,
+          issueId,
+          agentId: run.agentId,
+          contextSnapshot: context,
+        }))
       ) {
         await cancelQueuedRunForBlockedDependencies(
           run,
@@ -17519,8 +17526,22 @@ export function heartbeatService(
     }
     const claimed = queuedCommentClaim
       ? queuedCommentClaim.run
-      : await withChatControlRecoveryGate(run, "claim", async (tx) =>
-          tx
+      : await withChatControlRecoveryGate(run, "claim", async (tx) => {
+          // The automation claim holds the issue lock. Keep the addressed card
+          // locked through the run transition, so a concurrent answer cannot
+          // invalidate the ownership exception between validation and claim.
+          if (
+            issueId && run.invocationSource === "automation" &&
+            context.wakeReason === "interaction_pending" &&
+            !(await isPendingIssueInteractionWake(tx, {
+              companyId: run.companyId,
+              issueId,
+              agentId: run.agentId,
+              contextSnapshot: context,
+              lockInteraction: true,
+            }))
+          ) return null;
+          return tx
             .update(heartbeatRuns)
             .set({
               status: "running",
@@ -17537,7 +17558,8 @@ export function heartbeatService(
               ),
             )
             .returning()
-            .then((rows) => rows[0] ?? null),
+            .then((rows) => rows[0] ?? null);
+        },
         );
     if (!claimed) return null;
 
@@ -26996,10 +27018,15 @@ export function heartbeatService(
           const blockedInteractionWake =
             dependencyReadiness &&
             !dependencyReadiness.isDependencyReady &&
-            allowsIssueInteractionWake(
+            (allowsIssueInteractionWake(
               enrichedContextSnapshot,
               ISSUE_TREE_CONTROL_INTERACTION_WAKE_REASONS,
-            );
+            ) || await isPendingIssueInteractionWake(tx, {
+              companyId: issue.companyId,
+              issueId: issue.id,
+              agentId,
+              contextSnapshot: enrichedContextSnapshot,
+            }));
 
           if (blockedInteractionWake) {
             enrichedContextSnapshot.dependencyBlockedInteraction = true;

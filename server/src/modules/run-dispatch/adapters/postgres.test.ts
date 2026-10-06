@@ -14,6 +14,7 @@ import {
   issueRelations,
   issueRecoveryActions,
   issueTreeHolds,
+  issueThreadInteractions,
   issues,
 } from "@paperclipai/db";
 import { ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY } from "@paperclipai/shared";
@@ -52,6 +53,7 @@ describeEmbeddedPostgres("run-dispatch postgres adapter", () => {
 
   afterEach(async () => {
     await db.delete(activityLog);
+    await db.delete(issueThreadInteractions);
     await db.delete(issueDocuments);
     await db.delete(documentRevisions);
     await db.delete(documents);
@@ -190,6 +192,66 @@ describeEmbeddedPostgres("run-dispatch postgres adapter", () => {
       key: ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY,
     });
   }
+
+  it("keeps a pending addressed question runnable without transferring the issue", async () => {
+    const { companyId, agentId: ownerId } = await seedCompanyAndAgent();
+    const addresseeId = randomUUID();
+    const issueId = randomUUID();
+    const interactionId = randomUUID();
+    await seedAgent({ id: addresseeId, companyId, name: "Coordinator" });
+    await seedIssue({ companyId, issueId, status: "in_review", assigneeAgentId: ownerId });
+    await db.insert(issueThreadInteractions).values({
+      id: interactionId, companyId, issueId, kind: "ask_user_questions",
+      status: "pending", createdByAgentId: ownerId, addresseeAgentId: addresseeId,
+      effectiveResolverPolicy: "anyone",
+      payload: { version: 1, questions: [] },
+    });
+    const runId = await seedRun({ companyId, agentId: addresseeId, contextSnapshot: {
+      issueId, interactionId, interactionKind: "ask_user_questions",
+      wakeReason: "interaction_pending", source: "issue.interaction.created",
+    } });
+
+    expect(await createPostgresRunDispatchAdapter(db).cancelStaleQueuedRun({
+      companyId, runId, expectedStatus: "queued", now: new Date(),
+    })).toMatchObject({ outcome: "not_stale" });
+    const [issue] = await db.select().from(issues).where(eq(issues.id, issueId));
+    expect(issue).toMatchObject({ assigneeAgentId: ownerId, executionRunId: null, checkoutRunId: null });
+  });
+
+  it.each([
+    "answered", "cancelled", "human_only", "other_agent", "other_issue",
+    "other_company", "missing", "bad_id", "wrong_source", "ordinary_wake",
+  ])("rejects an invalid addressed interaction wake: %s", async (variant) => {
+    const { companyId, agentId: ownerId } = await seedCompanyAndAgent();
+    const addresseeId = randomUUID();
+    const issueId = randomUUID();
+    const interactionId = randomUUID();
+    await seedAgent({ id: addresseeId, companyId, name: "Coordinator" });
+    await seedIssue({ companyId, issueId, status: "in_review", assigneeAgentId: ownerId });
+    let cardCompanyId = companyId;
+    let cardIssueId = issueId;
+    if (variant === "other_company") cardCompanyId = (await seedCompanyAndAgent()).companyId;
+    if (variant === "other_issue" || variant === "other_company") {
+      cardIssueId = randomUUID();
+      await seedIssue({ companyId: cardCompanyId, issueId: cardIssueId, status: "todo" });
+    }
+    if (variant !== "missing") await db.insert(issueThreadInteractions).values({
+      id: interactionId, companyId: cardCompanyId, issueId: cardIssueId, kind: "ask_user_questions",
+      status: ["answered", "cancelled"].includes(variant) ? variant : "pending",
+      createdByAgentId: ownerId,
+      addresseeAgentId: variant === "other_agent" ? ownerId : addresseeId,
+      effectiveResolverPolicy: variant === "human_only" ? "human_only" : "anyone",
+      payload: { version: 1, questions: [] },
+    });
+    const runId = await seedRun({ companyId, agentId: addresseeId, contextSnapshot: {
+      issueId, interactionId: variant === "bad_id" ? "not-a-uuid" : interactionId,
+      wakeReason: variant === "ordinary_wake" ? "issue_assigned" : "interaction_pending",
+      source: variant === "wrong_source" ? "manual" : "issue.interaction.created",
+    } });
+    expect(await createPostgresRunDispatchAdapter(db).cancelStaleQueuedRun({
+      companyId, runId, expectedStatus: "queued", now: new Date(),
+    })).toMatchObject({ outcome: "cancelled", errorCode: "issue_assignee_changed" });
+  });
 
   it.each(["executionRunId", "checkoutRunId"] as const)("suppresses delayed native replacement after another run acquires %s", async (lock) => {
     const { companyId, agentId } = await seedCompanyAndAgent();

@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { queryKeys } from "@/lib/queryKeys";
+import { schema as dshSchema } from "../../../packages/adapters/dsh-local/src/definition";
+import { invalidateConfigSchemaCache } from "@/adapters/schema-config-fields";
 import { NewAgent } from "./NewAgent";
 import { ApiError } from "@/api/client";
 
@@ -167,6 +169,7 @@ beforeEach(() => {
     "codex_local",
     "opencode_local",
     "pi_local",
+    "dsh_local",
     "paperclip_runner", "cursor_cloud", "cursor", "gemini_local", "kimi_local", "grok_local", "hermes_local", "hermes_gateway",
   ].map((type) => ({ type, loaded: true, disabled: false }));
   api.adapterModels.mockResolvedValue([]);
@@ -198,6 +201,34 @@ afterEach(async () => {
   container.remove();
 });
 describe("New agent setup", () => {
+  it("configura dsh pelo schema e vincula segredo antes de testar, sem testCredentials novos", async () => {
+    invalidateConfigSchemaCache("dsh_local");
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => dshSchema })));
+    try {
+      await render("dsh_local");
+      expect(container.textContent).toContain("1. Provedor");
+      expect(container.textContent).not.toContain("ID permanente do provedor");
+      const input = container.querySelector('input[placeholder^="Use Testar ambiente"]') as HTMLInputElement;
+      expect(input).toBeTruthy();
+      await act(async () => {
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, "deepseek-flash");
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      await act(async () => input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
+      await fill("DEEPSEEK_API_KEY", "dsh-private-key");
+      await click("Salvar chave como segredo");
+      expect(secrets.create).toHaveBeenCalledWith("company-1", expect.objectContaining({ value: "dsh-private-key" }));
+      await click("Run test");
+      expect(api.testEnvironment.mock.calls[0][2]).toMatchObject({
+        testCredentials: {}, adapterConfig: { provider: "deepseek", model: "deepseek-flash", env: { DEEPSEEK_API_KEY: { type: "secret_ref", secretId: "org-secret-1" } } },
+      });
+      await click("Finish setup");
+      expect(api.hire.mock.calls[0][1].adapterConfig).toMatchObject({ provider: "deepseek", model: "deepseek-flash", env: { DEEPSEEK_API_KEY: { type: "secret_ref", secretId: "org-secret-1" } } });
+      expect(JSON.stringify(api.hire.mock.calls)).not.toContain("dsh-private-key");
+      expect(JSON.stringify(api.testEnvironment.mock.calls)).not.toContain("dsh-private-key");
+    } finally { vi.unstubAllGlobals(); }
+  });
+
   it("blocks direct runner setup links when the experiment is disabled", async () => {
     settings.getExperimental.mockResolvedValue({ enableNativeRunner: false });
     await render("paperclip_runner");

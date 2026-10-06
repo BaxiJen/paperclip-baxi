@@ -1,18 +1,33 @@
 import { describe, expect, it } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { KiroLogoIcon } from "../components/KiroLogoIcon";
 
 import { getAdapterDisplay, getAdapterLabel, getAdapterLabels } from "./adapter-display-registry";
 
 describe("adapter display registry", () => {
+  it("renders the Kiro brand asset instead of the generic adapter fallback", () => {
+    const { icon } = getAdapterDisplay("kiro_local");
+    expect(icon).toBe(KiroLogoIcon);
+    expect(icon).not.toBe(getAdapterDisplay("unknown_local").icon);
+    const markup = renderToStaticMarkup(createElement(icon, { className: "size-6" }));
+    expect(markup).toContain('src="/brands/adapters/kiro-color.svg"');
+    expect(markup).toContain('alt="Kiro"');
+    expect(markup).toContain("size-6");
+  });
+
   it("uses user-facing labels without the legacy local qualifier for built-in adapters", () => {
     expect(getAdapterLabel("codex_local")).toBe("Codex");
     expect(getAdapterLabel("claude_local")).toBe("Claude Code");
     expect(getAdapterLabel("acpx_local")).toBe("ACPX (retired)");
     expect(getAdapterLabel("cursor")).toBe("Cursor");
     expect(getAdapterLabel("gemini_local")).toBe("Gemini CLI");
+    expect(getAdapterDisplay("antigravity_local")).toMatchObject({ label: "Antigravity", description: "Google Antigravity CLI" });
     expect(getAdapterLabel("grok_local")).toBe("Grok Build");
     expect(getAdapterLabel("kimi_local")).toBe("Kimi Code");
     expect(getAdapterLabel("hermes_local")).toBe("Hermes");
     expect(getAdapterLabel("hermes_gateway")).toBe("Hermes Gateway");
+    expect(getAdapterLabel("dsh_local")).toBe("DeepSeek Harness (dsh)");
     expect(getAdapterLabel("opencode_local")).toBe("OpenCode");
     expect(getAdapterLabel("pi_local")).toBe("Pi");
 
@@ -22,6 +37,7 @@ describe("adapter display registry", () => {
       acpx_local: "ACPX (retired)",
       cursor: "Cursor",
       gemini_local: "Gemini CLI",
+      antigravity_local: "Antigravity",
       grok_local: "Grok Build",
       kimi_local: "Kimi Code",
       hermes_local: "Hermes",

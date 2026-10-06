@@ -5238,6 +5238,7 @@ export function recoveryService(
       const filters = [
         eq(issues.status, "blocked"),
         isNull(issues.conversationAgentId),
+        isNull(issues.unblockDescriptor),
         visibleIssueCondition(),
         sql`${issues.assigneeAgentId} is not null`,
       ];

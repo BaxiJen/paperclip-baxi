@@ -242,7 +242,7 @@ describe("issue dependency wakeups in issue routes", () => {
     });
   });
 
-  it("wakes an assigned blocked issue when blockers are applied after the blocker is already done", async () => {
+  it.each([false, true])("restores ready dependencies without overriding an explicit wait: %s", async (explicitWait) => {
     const parentIssueId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
     const childIssueId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
     mockIssueService.getById.mockResolvedValue({
@@ -251,7 +251,7 @@ describe("issue dependency wakeups in issue routes", () => {
       identifier: "PAP-200",
       title: "Blocked after completion",
       description: null,
-      status: "todo",
+      status: "blocked",
       priority: "medium",
       parentId: null,
       assigneeAgentId: "agent-2",
@@ -269,6 +269,7 @@ describe("issue dependency wakeups in issue routes", () => {
       title: "Blocked after completion",
       description: null,
       status: "blocked",
+      unblockDescriptor: explicitWait ? { owner: "board", action: "Confirm external operator availability" } : null,
       priority: "medium",
       parentId: null,
       assigneeAgentId: "agent-2",
@@ -294,10 +295,14 @@ describe("issue dependency wakeups in issue routes", () => {
       .send({
         status: "blocked",
         blockedByIssueIds: [childIssueId],
-        unblockDescriptor: { owner: "board", action: "Review the restored dependency" },
+        ...(explicitWait ? { unblockDescriptor: { owner: "board", action: "Confirm external operator availability" } } : {}),
       });
 
     expect(res.status).toBe(200);
+    if (explicitWait) {
+      expect(mockWakeup).not.toHaveBeenCalled();
+      return;
+    }
     await vi.waitFor(() => {
       expect(mockWakeup).toHaveBeenCalledWith(
         "agent-2",

@@ -1,9 +1,10 @@
 import { DEFAULT_CODEX_LOCAL_MODEL } from "@paperclipai/adapter-codex-local";
 import { codexReasoningEffortOptions } from "./codex-reasoning-effort";
-import { PROVIDER_ENV_KEYS } from "./provider-credential";
+import { DSH_PROVIDER_ENV_KEYS, PROVIDER_ENV_KEYS } from "./provider-credential";
 
 /** Only controls consumed by each adapter's config builder and runtime belong here. */
 export const SETUP_CREDENTIAL_KEYS: Record<string, string> = {
+  antigravity_local: "GEMINI_API_KEY",
   cursor: "CURSOR_API_KEY",
   cursor_cloud: "CURSOR_API_KEY",
   gemini_local: "GEMINI_API_KEY",
@@ -20,7 +21,16 @@ export const HERMES_PROVIDER_KEYS: Record<string, string> = {
   minimax: "MINIMAX_API_KEY",
 };
 
+export const DSH_KEY_CONSOLES: Record<string, string> = {
+  deepseek: "https://platform.deepseek.com/api_keys",
+  anthropic: "https://console.anthropic.com/settings/keys",
+  openai: "https://platform.openai.com/api-keys",
+  moonshotai: "https://platform.moonshot.ai/console/api-keys",
+  zai: "https://z.ai/manage-apikey/apikey-list",
+};
+
 export function setupProviderKeys(adapter: string) {
+  if (adapter === "dsh_local") return DSH_PROVIDER_ENV_KEYS;
   return adapter === "hermes_local" ? HERMES_PROVIDER_KEYS : PROVIDER_ENV_KEYS;
 }
 
@@ -42,6 +52,9 @@ export function setupEfforts(adapter: string, model = ""): string[] {
 }
 
 export const SETUP_LOGIN_HINTS: Record<string, string> = {
+  antigravity_local:
+    "Selecione/crie um segredo com a chave do Google AI Studio. Assinatura Google ainda não está disponível neste host; Testar conexão mostra instruções para qualificação manual na VPS.",
+  dsh_local: "Selecione/crie um segredo para o provedor escolhido. Testar ambiente confere a conexão e lista modelos sem inferência. OAuth não é suportado.",
   cursor:
     "Use a Cursor API key, or run agent login on the selected environment's host.",
   gemini_local:

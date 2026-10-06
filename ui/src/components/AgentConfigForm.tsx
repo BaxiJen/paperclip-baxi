@@ -76,6 +76,7 @@ import { ClaudeLocalAdvancedFields } from "../adapters/claude-local/config-field
 import { MarkdownEditor } from "./MarkdownEditor";
 import { ChoosePathButton } from "./PathInstructionsModal";
 import { OpenCodeLogoIcon } from "./OpenCodeLogoIcon";
+import { KiroLogoIcon } from "./KiroLogoIcon";
 import { ReportsToPicker } from "./ReportsToPicker";
 import {
   EnvironmentVariablesEditor,
@@ -961,7 +962,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
   const renderAdapterFields = (section: AdapterConfigSection) => (
     <>
       {adapterType === "claude_local" && <ClaudeLocalAdvancedFields {...adapterFieldProps} section={section} />}
-      <uiAdapter.ConfigFields {...adapterFieldProps} section={section} hideModel={isLocal} />
+      <uiAdapter.ConfigFields {...adapterFieldProps} section={section} hideModel={isLocal && adapterType !== "dsh_local"} />
     </>
   );
   // Popover states
@@ -1708,7 +1709,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
           )}
 
           {renderAdapterFields("adapter")}
-          {isLocal && (<>
+          {isLocal && adapterType !== "dsh_local" && (<>
               <ModelDropdown
                 models={models}
                 value={currentModelId}
@@ -3634,6 +3635,7 @@ export function AdapterTypeDropdown({
         <button className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-sm hover:bg-accent/50 transition-colors w-full justify-between">
           <span className="inline-flex min-w-0 items-center gap-1.5">
             {value === "opencode_local" ? <OpenCodeLogoIcon className="h-3.5 w-3.5" /> : null}
+            {value === "kiro_local" ? <KiroLogoIcon className="h-3.5 w-3.5" /> : null}
             <span className="truncate">{adapterLabels[value] ?? getAdapterLabel(value)}</span>
             {selectedDisplay.experimental && <ExperimentalBadge />}
           </span>
@@ -3661,6 +3663,7 @@ export function AdapterTypeDropdown({
           >
             <span className="inline-flex items-center gap-1.5">
               {item.value === "opencode_local" ? <OpenCodeLogoIcon className="h-3.5 w-3.5" /> : null}
+              {item.value === "kiro_local" ? <KiroLogoIcon className="h-3.5 w-3.5" /> : null}
               <span>{item.label}</span>
               {item.experimental && <ExperimentalBadge />}
             </span>
