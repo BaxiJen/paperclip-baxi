@@ -15,6 +15,7 @@ export default defineConfig({
       "packages/adapters/grok-local",
       "packages/adapters/kimi-local",
       "packages/adapters/kiro-local",
+      "packages/adapters/antigravity-local",
       "packages/adapters/dsh-local",
       "packages/adapters/openclaw-gateway",
       "packages/adapters/opencode-local",

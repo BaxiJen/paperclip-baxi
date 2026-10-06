@@ -6,6 +6,14 @@ Gemini and Kimi use the color variants. Cursor, Grok, Hermes Agent, and Pi Agent
 
 Artwork is distributed under the accompanying MIT license. Brand names and marks belong to their respective owners.
 
-`deepseek-color.svg` is the unmodified LobeHub Icons MIT color SVG supplied for
-the dsh integration ([upstream asset](https://github.com/lobehub/lobe-icons/blob/master/packages/static-svg/icons/deepseek-color.svg)).
-It is used only as the integration's engine logo. The original SVG bytes are preserved.
+`kiro-color.svg` is copied unchanged from LobeHub Icons, package
+`@lobehub/icons-static-svg` version `1.95.1`, file `icons/kiro-color.svg`,
+under the accompanying MIT license.
+
+`antigravity-color.svg` is copied unchanged from LobeHub Icons, package
+`@lobehub/icons-static-svg` version `1.95.1`, file `icons/antigravity-color.svg`,
+under the accompanying MIT license.
+
+`deepseek-color.svg` is copied unchanged from LobeHub Icons, package
+`@lobehub/icons-static-svg` version `1.95.1`, file `icons/deepseek-color.svg`,
+under the accompanying MIT license. Used only as the dsh engine logo.
