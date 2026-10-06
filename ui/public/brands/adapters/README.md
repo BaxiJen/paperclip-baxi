@@ -6,5 +6,10 @@ Gemini and Kimi use the color variants. Cursor, Grok, Hermes Agent, and Pi Agent
 
 Artwork is distributed under the accompanying MIT license. Brand names and marks belong to their respective owners.
 
-Antigravity: [LobeHub Icons, antigravity-color.svg](https://github.com/lobehub/lobe-icons/blob/master/packages/static-svg/icons/antigravity-color.svg), MIT.
-Copied byte-for-byte from the supplied `lobe_antigravity-color.svg`; no recoloring or redrawing.
+`kiro-color.svg` is copied unchanged from LobeHub Icons, package
+`@lobehub/icons-static-svg` version `1.95.1`, file `icons/kiro-color.svg`,
+under the accompanying MIT license.
+
+`antigravity-color.svg` is copied unchanged from LobeHub Icons, package
+`@lobehub/icons-static-svg` version `1.95.1`, file `icons/antigravity-color.svg`,
+under the accompanying MIT license.
