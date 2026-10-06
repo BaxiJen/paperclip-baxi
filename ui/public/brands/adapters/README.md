@@ -5,3 +5,6 @@ Source: [Lobe Icons](https://github.com/lobehub/lobe-icons/tree/a94750e3f5f8fc33
 Gemini and Kimi use the color variants. Cursor, Grok, Hermes Agent, and Pi Agent use their monochrome brand marks. Dark variants replace `currentColor` with white for use as standalone images; the Kimi light variant changes its white letterform to black. All other artwork is unchanged. Pi is the coding agent at pi.dev.
 
 Artwork is distributed under the accompanying MIT license. Brand names and marks belong to their respective owners.
+
+Antigravity: [LobeHub Icons, antigravity-color.svg](https://github.com/lobehub/lobe-icons/blob/master/packages/static-svg/icons/antigravity-color.svg), MIT.
+Copied byte-for-byte from the supplied `lobe_antigravity-color.svg`; no recoloring or redrawing.

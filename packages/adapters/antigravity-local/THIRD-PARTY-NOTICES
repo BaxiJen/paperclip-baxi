@@ -1,0 +1,10 @@
+The runtime bundle includes Paperclip adapter-utils (MIT), Copyright (c) Paperclip contributors.
+The upstream MIT license is preserved in LICENSE.
+
+build.mjs generates dist/THIRD-PARTY-NOTICES.txt from the license files of every
+third-party npm package actually included in the bundle. That file and esbuild's
+dist/index.js.LEGAL.txt ship with the package. No runtime npm dependencies are
+required on the target VPS.
+
+The Antigravity mark used by the host UI is from LobeHub Icons (MIT), unchanged.
+Its source and the accompanying MIT license are in ui/public/brands/adapters/.
