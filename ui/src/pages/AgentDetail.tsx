@@ -29,6 +29,7 @@ import { AgentSkillsTab } from "./agent-skills/AgentSkillsTab";
 import { AgentConfigForm } from "../components/AgentConfigForm";
 import { PillGuy } from "../components/onboarding/PillGuy";
 import { getAdapterDisplay } from "../adapters/adapter-display-registry";
+import { KiroLogoIcon } from "../components/KiroLogoIcon";
 import { adapterLabels, roleLabels, help } from "../components/agent-config-primitives";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import { useAdapterCapabilities } from "@/adapters/use-adapter-capabilities";
@@ -1256,6 +1257,7 @@ export function AgentDetail() {
               {agent.adapterType === "claude_local" || agent.adapterType === "codex_local"
                 ? <img src={`/brands/${agent.adapterType === "claude_local" ? "claude" : "codex"}-color.svg`} className="size-4" alt="" />
                 : null}
+              {agent.adapterType === "kiro_local" ? <KiroLogoIcon className="size-4" /> : null}
               <span>{getAdapterDisplay(agent.adapterType).label}</span><span>·</span>
               <span>{agent.title || roleLabels[agent.role] || agent.role}</span>
             </div>

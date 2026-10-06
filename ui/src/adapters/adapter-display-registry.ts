@@ -17,6 +17,7 @@ import {
   Cpu,
 } from "lucide-react";
 import { OpenCodeLogoIcon } from "@/components/OpenCodeLogoIcon";
+import { KiroLogoIcon } from "@/components/KiroLogoIcon";
 
 // ---------------------------------------------------------------------------
 // Type suffix parsing
@@ -100,6 +101,11 @@ const adapterDisplayMap: Record<string, AdapterDisplayInfo> = {
     label: "Kimi Code",
     description: "Kimi Code CLI harness",
     icon: Moon,
+  },
+  kiro_local: {
+    label: "Kiro",
+    description: "Kiro CLI harness",
+    icon: KiroLogoIcon,
   },
   hermes_gateway: {
     label: "Hermes Gateway",
