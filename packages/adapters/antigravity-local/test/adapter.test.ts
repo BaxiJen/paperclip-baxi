@@ -141,6 +141,12 @@ describe("external Antigravity adapter", () => {
   it.each([["version", "antigravity_binary_invalid"], ["old", "antigravity_cli_incompatible"], ["auth", "adapter_auth_missing"], ["keyring", "antigravity_keyring_unavailable"], ["empty-models", "antigravity_models_invalid"]])("diagnoses %s without inference", async (value, code) => {
     await mode(value); expect((await diagnostic()).checks.map((c) => c.code)).toContain(code);
   });
+  it.each([["success", "stderr (agy 1.2.x)"], ["help-stdout", "stdout"]])("accepts CLI flags from --help on %s", async (value) => {
+    await mode(value);
+    const codes = (await diagnostic()).checks.map((c) => c.code);
+    expect(codes).not.toContain("antigravity_cli_incompatible");
+    expect(codes).toContain("antigravity_version");
+  });
   it("lists models via the host callback without borrowing server credentials; cannot infer an unmarked default", async () => {
     await symlink(path.join(directory, "agy.mjs"), path.join(directory, "agy"));
     vi.stubEnv("PATH", `${directory}:${process.env.PATH}`); vi.stubEnv("GEMINI_API_KEY", key);
