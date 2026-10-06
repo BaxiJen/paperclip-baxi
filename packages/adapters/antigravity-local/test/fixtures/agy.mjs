@@ -14,7 +14,11 @@ const record = { args, home: process.env.HOME, data: process.env.XDG_DATA_HOME,
   githubToken: process.env.GH_TOKEN, dbus: process.env.DBUS_SESSION_BUS_ADDRESS };
 fs.appendFileSync(path.join(directory, "probes.jsonl"), JSON.stringify(record) + "\n");
 if (args.includes("--version")) console.log(mode === "version" ? "unknown" : "agy version 1.2.6");
-else if (args.includes("--help")) console.log(mode === "old" ? "--print" : "--input-format --output-format --print-timeout");
+else if (args.includes("--help")) {
+  // Real agy 1.2.x prints its usage to stderr (Go flag) and exits 0.
+  const usage = mode === "old" ? "--print" : "--input-format --output-format --print-timeout";
+  (mode === "help-stdout" ? console.log : console.error)(usage);
+}
 else if (args.includes("models")) {
   if (mode === "auth") { console.error("authentication required"); process.exitCode = 1; }
   else if (mode === "keyring") { console.error("secret-service keyring is locked"); process.exitCode = 1; }

@@ -58,7 +58,9 @@ export async function testEnvironment(ctx: AdapterEnvironmentTestContext): Promi
     }
     checks.push({ code: "antigravity_version", level: "info", message: "Binário agy encontrado e versão identificada." });
     const help = await probe(["--help"]);
-    if (help.failed || help.timedOut || help.exitCode !== 0 || !help.stdout.includes("--input-format") || !help.stdout.includes("--print-timeout")) {
+    // agy (Go flag) prints --help to stderr with exit 0; accept either stream.
+    const helpText = help.stdout + help.stderr;
+    if (help.failed || help.timedOut || help.exitCode !== 0 || !helpText.includes("--input-format") || !helpText.includes("--print-timeout")) {
       throw new AdapterError("antigravity_cli_incompatible", "Atualize o agy: são necessários --input-format stream-json e --print-timeout.");
     }
     if (subscription || config.env.GEMINI_API_KEY?.trim()) {

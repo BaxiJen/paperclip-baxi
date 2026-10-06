@@ -1,6 +1,6 @@
 {
   "name": "@baxijen/paperclip-adapter-antigravity",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Google Antigravity CLI \u2014 plugin externo BaXiJen para Paperclip",
   "license": "MIT",
   "type": "module",
