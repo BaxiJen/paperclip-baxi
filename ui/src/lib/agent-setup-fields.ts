@@ -4,6 +4,7 @@ import { PROVIDER_ENV_KEYS } from "./provider-credential";
 
 /** Only controls consumed by each adapter's config builder and runtime belong here. */
 export const SETUP_CREDENTIAL_KEYS: Record<string, string> = {
+  antigravity_local: "GEMINI_API_KEY",
   cursor: "CURSOR_API_KEY",
   cursor_cloud: "CURSOR_API_KEY",
   gemini_local: "GEMINI_API_KEY",
@@ -42,6 +43,8 @@ export function setupEfforts(adapter: string, model = ""): string[] {
 }
 
 export const SETUP_LOGIN_HINTS: Record<string, string> = {
+  antigravity_local:
+    "Selecione/crie um segredo com a chave do Google AI Studio. Assinatura Google ainda não está disponível neste host; Testar conexão mostra instruções para qualificação manual na VPS.",
   cursor:
     "Use a Cursor API key, or run agent login on the selected environment's host.",
   gemini_local:

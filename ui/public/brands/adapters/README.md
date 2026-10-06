@@ -9,3 +9,7 @@ Artwork is distributed under the accompanying MIT license. Brand names and marks
 `kiro-color.svg` is copied unchanged from LobeHub Icons, package
 `@lobehub/icons-static-svg` version `1.95.1`, file `icons/kiro-color.svg`,
 under the accompanying MIT license.
+
+`antigravity-color.svg` is copied unchanged from LobeHub Icons, package
+`@lobehub/icons-static-svg` version `1.95.1`, file `icons/antigravity-color.svg`,
+under the accompanying MIT license.

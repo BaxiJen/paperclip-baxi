@@ -22,6 +22,7 @@ describe("adapter display registry", () => {
     expect(getAdapterLabel("acpx_local")).toBe("ACPX (retired)");
     expect(getAdapterLabel("cursor")).toBe("Cursor");
     expect(getAdapterLabel("gemini_local")).toBe("Gemini CLI");
+    expect(getAdapterDisplay("antigravity_local")).toMatchObject({ label: "Antigravity", description: "Google Antigravity CLI" });
     expect(getAdapterLabel("grok_local")).toBe("Grok Build");
     expect(getAdapterLabel("kimi_local")).toBe("Kimi Code");
     expect(getAdapterLabel("hermes_local")).toBe("Hermes");
@@ -35,6 +36,7 @@ describe("adapter display registry", () => {
       acpx_local: "ACPX (retired)",
       cursor: "Cursor",
       gemini_local: "Gemini CLI",
+      antigravity_local: "Antigravity",
       grok_local: "Grok Build",
       kimi_local: "Kimi Code",
       hermes_local: "Hermes",

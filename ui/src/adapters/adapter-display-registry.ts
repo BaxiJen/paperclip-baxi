@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { OpenCodeLogoIcon } from "@/components/OpenCodeLogoIcon";
 import { KiroLogoIcon } from "@/components/KiroLogoIcon";
+import { AntigravityLogoIcon } from "@/components/AntigravityLogoIcon";
 
 // ---------------------------------------------------------------------------
 // Type suffix parsing
@@ -61,6 +62,11 @@ export interface AdapterDisplayInfo {
 }
 
 const adapterDisplayMap: Record<string, AdapterDisplayInfo> = {
+  antigravity_local: {
+    label: "Antigravity",
+    description: "Google Antigravity CLI",
+    icon: AntigravityLogoIcon,
+  },
   acpx_local: {
     label: "ACPX (retired)",
     description: "Retired standalone ACPX adapter",
