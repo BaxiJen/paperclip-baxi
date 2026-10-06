@@ -10,6 +10,16 @@ export const PROVIDER_ENV_KEYS: Record<string, string> = {
   opencode: "OPENCODE_API_KEY",
 };
 
+/** dsh's route IDs differ from other harnesses; keep their menus unchanged. */
+export const DSH_PROVIDER_ENV_KEYS: Record<string, string> = {
+  deepseek: "DEEPSEEK_API_KEY",
+  anthropic: PROVIDER_ENV_KEYS.anthropic,
+  openai: PROVIDER_ENV_KEYS.openai,
+  moonshotai: "MOONSHOT_API_KEY",
+  zai: "ZAI_API_KEY",
+  custom: "DSH_CUSTOM_API_KEY",
+};
+
 /** New organization credentials get a distinct key; never rotate another agent's secret. */
 export async function storeOrganizationApiKey(
   companyId: string,

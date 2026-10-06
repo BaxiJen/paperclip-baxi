@@ -1,0 +1,4 @@
+This integration includes Paperclip adapter utilities, MIT, Copyright (c) Paperclip contributors. See LICENSE.
+Build-generated dist/THIRD-PARTY-NOTICES.txt contains bundled dependency licenses.
+The UI brand asset comes from LobeHub Icons (MIT); see ui/public/brands/adapters/README.md and its accompanying license.
+The external dsh CLI is not bundled.

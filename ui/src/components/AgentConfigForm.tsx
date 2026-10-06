@@ -962,7 +962,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
   const renderAdapterFields = (section: AdapterConfigSection) => (
     <>
       {adapterType === "claude_local" && <ClaudeLocalAdvancedFields {...adapterFieldProps} section={section} />}
-      <uiAdapter.ConfigFields {...adapterFieldProps} section={section} hideModel={isLocal} />
+      <uiAdapter.ConfigFields {...adapterFieldProps} section={section} hideModel={isLocal && adapterType !== "dsh_local"} />
     </>
   );
   // Popover states
@@ -1709,7 +1709,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
           )}
 
           {renderAdapterFields("adapter")}
-          {isLocal && (<>
+          {isLocal && adapterType !== "dsh_local" && (<>
               <ModelDropdown
                 models={models}
                 value={currentModelId}
