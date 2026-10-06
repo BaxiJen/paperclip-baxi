@@ -24,6 +24,7 @@ export type AgentBasics = {
   runnerProvider: string;
 };
 const brandMarks: Record<string, { src: string; dark?: string }> = {
+  dsh_local: { src: "/brands/adapters/deepseek-color.svg" },
   claude_local: { src: "/brands/claude-color.svg" },
   codex_local: { src: "/brands/codex-color.svg" },
   gemini_local: { src: "/brands/adapters/gemini-color.svg" },

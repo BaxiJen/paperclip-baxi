@@ -103,9 +103,10 @@ vi.mock("../adapters", () => ({
     // The stand-in also records the two gates the form resolves for every
     // adapter, so a test can assert the plumbing without rendering a real
     // adapter's fields.
-    ConfigFields: ({ adapterType, hideInstructionsFile, managedSandboxOnly }: {
+    ConfigFields: ({ adapterType, hideInstructionsFile, managedSandboxOnly, hideModel }: {
       adapterType: string;
       hideInstructionsFile?: boolean;
+      hideModel?: boolean;
       managedSandboxOnly?: boolean;
     }) =>
       adapterType === "hermes_gateway"
@@ -113,6 +114,7 @@ vi.mock("../adapters", () => ({
         : (
           <div
             data-testid="adapter-config-fields"
+            data-hide-model={String(hideModel === true)}
             data-hide-instructions-file={String(hideInstructionsFile === true)}
             data-managed-sandbox-only={String(managedSandboxOnly === true)}
           />
@@ -737,6 +739,14 @@ describe("AgentConfigForm environment selector", () => {
     roots = [];
     document.body.innerHTML = "";
     vi.clearAllMocks();
+  });
+
+  it("mantém o modelo do schema dsh visível na edição, sem o seletor genérico", async () => {
+    const result = await renderForm([], { adapterType: "dsh_local", adapterConfig: { provider: "deepseek", model: "deepseek-flash" } });
+    roots.push(result.root);
+    const fields = result.container.querySelector('[data-testid="adapter-config-fields"]');
+    expect(fields?.getAttribute("data-hide-model")).toBe("false");
+    expect(result.container.textContent).not.toContain("Detect model");
   });
 
   it("promotes environment drafts through the page Save action and discards them through the page Discard action", async () => {

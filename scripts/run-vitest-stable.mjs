@@ -28,6 +28,7 @@ const nonServerProjects = [
   "@paperclipai/adapter-codex-local",
   "@paperclipai/adapter-grok-local",
   "@baxijen/paperclip-adapter-kiro",
+  "@baxijen/paperclip-adapter-dsh",
   "@paperclipai/adapter-openclaw-gateway",
   "@paperclipai/adapter-opencode-local",
   "@paperclipai/plugin-daytona",

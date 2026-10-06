@@ -16,6 +16,7 @@ import {
   Terminal,
   Cpu,
 } from "lucide-react";
+import { DshLogoIcon } from "@/components/DshLogoIcon";
 import { OpenCodeLogoIcon } from "@/components/OpenCodeLogoIcon";
 
 // ---------------------------------------------------------------------------
@@ -111,6 +112,11 @@ const adapterDisplayMap: Record<string, AdapterDisplayInfo> = {
     label: "Hermes",
     description: "Hermes harness",
     icon: Bot,
+  },
+  dsh_local: {
+    label: "DeepSeek Harness (dsh)",
+    description: "CLI local com múltiplos provedores de modelo",
+    icon: DshLogoIcon,
   },
   opencode_local: {
     label: "OpenCode",

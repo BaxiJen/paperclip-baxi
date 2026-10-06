@@ -1,7 +1,9 @@
+import { SchemaConfigFields, buildSchemaAdapterConfig } from "@/adapters/schema-config-fields";
 import { AiConnectionField, aiProviderForAdapter } from "../ai-connections/AiConnectionField";
 import type { AiConnectionBinding } from "@paperclipai/shared";
 import { DEFAULT_CODEX_LOCAL_MODEL } from "@paperclipai/adapter-codex-local";
 import {
+  DSH_KEY_CONSOLES,
   SETUP_CREDENTIAL_KEYS,
   SETUP_LOGIN_HINTS,
   setupEfforts,
@@ -119,13 +121,15 @@ function Setup({
     brandType === "claude_local" || brandType === "codex_local" || brandType === "grok_local"
       ? brandType
       : null;
+  const isDsh = adapterType === "dsh_local";
+  const [dshValues, setDshValues] = useState<Record<string, unknown>>({ provider: "deepseek" });
   const multiProvider =
     brandType === "opencode_local" || brandType === "pi_local";
   const providerKeys = setupProviderKeys(brandType);
   const chooseProvider = multiProvider || brandType === "hermes_local";
   const hasCredentialField =
-    chooseProvider || Boolean(SETUP_CREDENTIAL_KEYS[adapterType]);
-  const showModel = !["cursor_cloud", "hermes_gateway"].includes(adapterType);
+    isDsh || chooseProvider || Boolean(SETUP_CREDENTIAL_KEYS[adapterType]);
+  const showModel = !isDsh && !["cursor_cloud", "hermes_gateway"].includes(adapterType);
   const [gatewayUrl, setGatewayUrl] = useState("");
   const [kimiModel, setKimiModel] = useState("");
   const [kimiBaseUrl, setKimiBaseUrl] = useState("");
@@ -265,7 +269,7 @@ function Setup({
     environment?.driver === "sandbox" &&
     caps.data?.sandboxProviders?.[sandboxProvider]?.supportsLoginPty === true;
   const envKey =
-    SETUP_CREDENTIAL_KEYS[adapterType] ?? providerKeys[provider] ?? "API_KEY";
+    SETUP_CREDENTIAL_KEYS[adapterType] ?? providerKeys[isDsh ? String(dshValues.provider ?? "deepseek") : provider] ?? "API_KEY";
   const savedKey = userSecrets.data?.find(
     (entry) => entry.definition.key === envKey && entry.secret,
   );
@@ -344,7 +348,9 @@ function Setup({
           }
         : {}),
     };
-    const config = getUIAdapter(adapterType).buildAdapterConfig(values);
+    const config = isDsh
+      ? buildSchemaAdapterConfig({ ...values, adapterSchemaValues: dshValues })
+      : getUIAdapter(adapterType).buildAdapterConfig(values);
     if (isRunner)
       Object.assign(config, {
         provider: runnerProvider === "claude" ? "acpx" : runnerProvider,
@@ -378,7 +384,10 @@ function Setup({
     }
     return config;
   }
-  function preparedConfig(nextConnection = connection) {
+  function preparedConfig(nextConnection = connection, requireModel = true) {
+    if (isDsh && apiKey.trim()) throw new Error("Salve a chave como segredo antes de testar ou concluir.");
+    if (isDsh && !selectedBinding) throw new Error("Selecione/crie o segredo do provedor antes de testar ou concluir.");
+    if (isDsh && requireModel && !String(dshValues.model ?? "").trim()) throw new Error("Escolha ou digite o ID do modelo e confirme com Enter.");
     if (multiProvider && (!model.trim() || !model.includes("/")))
       throw new Error("Choose or enter a model in provider/model format.");
     if (
@@ -425,7 +434,7 @@ function Setup({
     setResult(null);
     setError(null);
     try {
-      const config = await preparedConfig(nextConnection);
+      const config = await preparedConfig(nextConnection, false);
       const tested = await testAgentSetup({
         companyId,
         adapterType,
@@ -755,7 +764,7 @@ function Setup({
                       <dl className="grid grid-cols-2 gap-4 text-sm">
                         <dt className="text-muted-foreground">Adapter</dt>
                         <dd>{getAdapterDisplay(adapterType).label}</dd>
-                        {showModel && (
+                        {(showModel || isDsh) && (
                           <>
                             <dt className="text-muted-foreground">Model</dt>
                             <dd className="break-all">
@@ -805,6 +814,12 @@ function Setup({
                     <h2 className="text-xl font-semibold">
                       Configure your agent
                     </h2>
+                    {isDsh && result?.checks.some((check) => check.code === "dsh_connected") && (
+                      <div className="flex items-center justify-between gap-3">
+                        <p>Conectado: {String(dshValues.provider)} · {String(dshValues.model || "escolha o modelo")}</p>
+                        <Button type="button" variant="outline" onClick={resetTest}>Trocar</Button>
+                      </div>
+                    )}
                     <fieldset disabled={busy} className="space-y-8">
                       <section className="space-y-5">
                         <h3 className="text-sm font-semibold">Runtime</h3>
@@ -881,6 +896,23 @@ function Setup({
                               </Field>
                             )}
                           </div>
+                        )}
+                        {isDsh && (
+                          <SchemaConfigFields
+                            mode="create" isCreate adapterType={adapterType}
+                            values={{ ...defaultCreateValues, adapterType, adapterSchemaValues: dshValues }}
+                            set={(patch) => {
+                              if (!patch.adapterSchemaValues) return;
+                              if (patch.adapterSchemaValues.provider !== dshValues.provider) {
+                                setApiKey("");
+                                setProviderBinding(null);
+                              }
+                              setDshValues(patch.adapterSchemaValues);
+                              resetTest();
+                            }}
+                            config={{}} eff={(_group, _field, original) => original}
+                            mark={() => {}} models={[]}
+                          />
                         )}
                         {SETUP_LOGIN_HINTS[adapterType] && (
                           <p className="text-sm text-muted-foreground">
@@ -971,6 +1003,31 @@ function Setup({
                                 </div>
                               </Field>
                             </div>
+                            {isDsh && (
+                              <div>
+                                <Button
+                                  type="button" disabled={busy || !apiKey.trim()}
+                                  onClick={async () => {
+                                    setSaving(true);
+                                    setError(null);
+                                    try {
+                                      const secret = await storeOrganizationApiKey(companyId, envKey, apiKey);
+                                      setProviderBinding(secret.binding);
+                                      setApiKey("");
+                                      resetTest();
+                                      await cache.invalidateQueries({ queryKey: queryKeys.secrets.list(companyId) });
+                                    } catch (cause) {
+                                      setError(cause instanceof Error ? cause.message : "Não foi possível salvar o segredo.");
+                                    } finally { setSaving(false); }
+                                  }}
+                                >Salvar chave como segredo</Button>
+                                {DSH_KEY_CONSOLES[String(dshValues.provider)] && (
+                                  <a href={DSH_KEY_CONSOLES[String(dshValues.provider)]} target="_blank" rel="noopener noreferrer">
+                                    Onde pego essa chave?
+                                  </a>
+                                )}
+                              </div>
+                            )}
                             {adapterType !== "cursor_cloud" && (
                               <div
                                 className={
@@ -1002,8 +1059,9 @@ function Setup({
                               </div>
                             )}
                             <p className="text-xs text-muted-foreground sm:col-span-2">
-                              New keys are saved as organization secrets when
-                              you finish setup.
+                              {isDsh
+                                ? "Salve a chave como segredo e teste a conexão. O segredo fica disponível na organização mesmo se você cancelar a criação do agente."
+                                : "New keys are saved as organization secrets when you finish setup."}
                               {multiProvider && ` Use a ${provider}/model ID.`}
                             </p>
                           </div>

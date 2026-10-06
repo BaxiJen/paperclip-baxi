@@ -13,6 +13,7 @@ describe("adapter display registry", () => {
     expect(getAdapterLabel("kimi_local")).toBe("Kimi Code");
     expect(getAdapterLabel("hermes_local")).toBe("Hermes");
     expect(getAdapterLabel("hermes_gateway")).toBe("Hermes Gateway");
+    expect(getAdapterLabel("dsh_local")).toBe("DeepSeek Harness (dsh)");
     expect(getAdapterLabel("opencode_local")).toBe("OpenCode");
     expect(getAdapterLabel("pi_local")).toBe("Pi");
 

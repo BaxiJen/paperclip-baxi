@@ -5,3 +5,7 @@ Source: [Lobe Icons](https://github.com/lobehub/lobe-icons/tree/a94750e3f5f8fc33
 Gemini and Kimi use the color variants. Cursor, Grok, Hermes Agent, and Pi Agent use their monochrome brand marks. Dark variants replace `currentColor` with white for use as standalone images; the Kimi light variant changes its white letterform to black. All other artwork is unchanged. Pi is the coding agent at pi.dev.
 
 Artwork is distributed under the accompanying MIT license. Brand names and marks belong to their respective owners.
+
+`deepseek-color.svg` is the unmodified LobeHub Icons MIT color SVG supplied for
+the dsh integration ([upstream asset](https://github.com/lobehub/lobe-icons/blob/master/packages/static-svg/icons/deepseek-color.svg)).
+It is used only as the integration's engine logo. The original SVG bytes are preserved.
