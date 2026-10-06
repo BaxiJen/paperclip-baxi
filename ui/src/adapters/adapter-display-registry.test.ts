@@ -1,8 +1,21 @@
 import { describe, expect, it } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { KiroLogoIcon } from "../components/KiroLogoIcon";
 
 import { getAdapterDisplay, getAdapterLabel, getAdapterLabels } from "./adapter-display-registry";
 
 describe("adapter display registry", () => {
+  it("renders the Kiro brand asset instead of the generic adapter fallback", () => {
+    const { icon } = getAdapterDisplay("kiro_local");
+    expect(icon).toBe(KiroLogoIcon);
+    expect(icon).not.toBe(getAdapterDisplay("unknown_local").icon);
+    const markup = renderToStaticMarkup(createElement(icon, { className: "size-6" }));
+    expect(markup).toContain('src="/brands/adapters/kiro-color.svg"');
+    expect(markup).toContain('alt="Kiro"');
+    expect(markup).toContain("size-6");
+  });
+
   it("uses user-facing labels without the legacy local qualifier for built-in adapters", () => {
     expect(getAdapterLabel("codex_local")).toBe("Codex");
     expect(getAdapterLabel("claude_local")).toBe("Claude Code");
