@@ -1498,7 +1498,7 @@ describeEmbeddedPostgres("issueThreadInteractionService", () => {
     expect(interactions.find((interaction) => interaction.id === otherKind.id)?.status).toBe("pending");
   });
 
-  it("supersedes an agent's own older pending ask_user_questions without crossing agent, kind, or issue", async () => {
+  it("supersedes an agent's own identical pending ask_user_questions without crossing agent, kind, or issue", async () => {
     const { companyId, goalId, issueId } = await seedConfirmationIssue("Question supersedes older sibling");
     const otherIssueId = randomUUID();
     await db.insert(issues).values({
@@ -1550,21 +1550,23 @@ describeEmbeddedPostgres("issueThreadInteractionService", () => {
       },
     });
 
+    // Every card carries the same content, so only agent, kind and issue scope
+    // keep the others pending.
     const older = await interactionsSvc.create(
-      { id: issueId, companyId }, question("Older question"), { agentId: probingAgentId },
+      { id: issueId, companyId }, question("Repeated question"), { agentId: probingAgentId },
     );
     const otherKind = await interactionsSvc.create({ id: issueId, companyId }, {
       kind: "request_confirmation",
       payload: { version: 1, prompt: "Approve the draft?" },
     }, { agentId: probingAgentId });
     const otherAgentQuestion = await interactionsSvc.create(
-      { id: issueId, companyId }, question("Other agent question"), { agentId: otherAgentId },
+      { id: issueId, companyId }, question("Repeated question"), { agentId: otherAgentId },
     );
     const otherIssueQuestion = await interactionsSvc.create(
-      { id: otherIssueId, companyId }, question("Other issue question"), { agentId: probingAgentId },
+      { id: otherIssueId, companyId }, question("Repeated question"), { agentId: probingAgentId },
     );
     const replacement = await interactionsSvc.create(
-      { id: issueId, companyId }, question("Newer question"), { agentId: probingAgentId },
+      { id: issueId, companyId }, question("Repeated question"), { agentId: probingAgentId },
     );
 
     const interactions = await interactionsSvc.listForIssue(issueId);
@@ -1589,7 +1591,107 @@ describeEmbeddedPostgres("issueThreadInteractionService", () => {
       .toBe("pending");
   });
 
-  it("leaves exactly one pending ask_user_questions on the onboarding first task after probe cards and the real question arrive", async () => {
+  const campaignQuestion = (prompt = "Which campaign?", vtexLabel = "VTEX") => ({
+    id: "campaign",
+    prompt,
+    selectionMode: "single" as const,
+    options: [{ id: "vtex", label: vtexLabel }, { id: "moe", label: "MoEngage" }],
+  });
+  const audienceQuestion = {
+    id: "audience",
+    prompt: "Which audience?",
+    selectionMode: "single" as const,
+    options: [{ id: "all", label: "Everyone" }],
+  };
+
+  it.each([
+    {
+      name: "the same questions for a different addressee",
+      older: (ids: { rootId: string; terraId: string }) => ({
+        addresseeAgentId: ids.rootId,
+        payload: { version: 1 as const, questions: [campaignQuestion()] },
+      }),
+      newer: (ids: { rootId: string; terraId: string }) => ({
+        addresseeAgentId: ids.terraId,
+        payload: { version: 1 as const, questions: [campaignQuestion()] },
+      }),
+    },
+    {
+      name: "the same question id with different text and options",
+      older: () => ({ payload: { version: 1 as const, questions: [campaignQuestion()] } }),
+      newer: () => ({
+        payload: {
+          version: 1 as const,
+          questions: [campaignQuestion("Which VTEX campaign?", "VTEX Brasil")],
+        },
+      }),
+    },
+    {
+      name: "a subset that drops an earlier question",
+      older: () => ({
+        payload: { version: 1 as const, questions: [campaignQuestion(), audienceQuestion] },
+      }),
+      newer: () => ({ payload: { version: 1 as const, questions: [campaignQuestion()] } }),
+    },
+    {
+      name: "the same questions with a different continuation policy",
+      older: () => ({
+        continuationPolicy: "wake_assignee" as const,
+        payload: { version: 1 as const, questions: [campaignQuestion()] },
+      }),
+      newer: () => ({
+        continuationPolicy: "none" as const,
+        payload: { version: 1 as const, questions: [campaignQuestion()] },
+      }),
+    },
+    {
+      name: "the same questions with a different resolver policy",
+      older: () => ({
+        resolverPolicy: "anyone" as const,
+        payload: { version: 1 as const, questions: [campaignQuestion()] },
+      }),
+      newer: () => ({
+        resolverPolicy: "human_only" as const,
+        payload: { version: 1 as const, questions: [campaignQuestion()] },
+      }),
+    },
+  ])("keeps the earlier pending ask_user_questions for $name", async ({ older, newer }) => {
+    const { companyId, issueId } = await seedConfirmationIssue("Independent questions stay pending");
+    const [creatorId, rootId, terraId] = [randomUUID(), randomUUID(), randomUUID()];
+    await db.insert(agents).values([
+      { id: creatorId, name: "Creator" },
+      { id: rootId, name: "Root" },
+      { id: terraId, name: "Terra" },
+    ].map((agent) => ({
+      ...agent,
+      companyId,
+      role: "engineer",
+      status: "active",
+      adapterType: "codex_local",
+      adapterConfig: {},
+      runtimeConfig: {},
+      permissions: {},
+    })));
+
+    const first = await interactionsSvc.create(
+      { id: issueId, companyId },
+      { kind: "ask_user_questions", ...older({ rootId, terraId }) },
+      { agentId: creatorId },
+    );
+    const second = await interactionsSvc.create(
+      { id: issueId, companyId },
+      { kind: "ask_user_questions", ...newer({ rootId, terraId }) },
+      { agentId: creatorId },
+    );
+
+    const interactions = await interactionsSvc.listForIssue(issueId);
+    expect(interactions.find((interaction) => interaction.id === first.id)?.status).toBe("pending");
+    expect(interactions.find((interaction) => interaction.id === second.id)?.status).toBe("pending");
+  });
+
+  it("keeps distinct onboarding probe and real questions pending instead of guessing which are stale", async () => {
+    // PAP-436/437 probe cleanup no longer happens automatically: a differing
+    // card is retired only by an explicit withdrawal.
     const companyId = randomUUID();
     const goalId = randomUUID();
     const issueId = randomUUID();
@@ -1665,21 +1767,12 @@ describeEmbeddedPostgres("issueThreadInteractionService", () => {
     const pendingQuestions = interactions.filter(
       (interaction) => interaction.kind === "ask_user_questions" && interaction.status === "pending",
     );
-    expect(pendingQuestions).toHaveLength(1);
-    expect(pendingQuestions[0]?.kind).toBe("ask_user_questions");
-    const [remaining] = pendingQuestions;
-    if (remaining?.kind === "ask_user_questions") {
-      expect(remaining.payload.questions[0]?.prompt).toContain("focus on first");
-    }
-
-    // Both probe cards auto-expired with the sibling-supersede reason.
-    const expiredQuestions = interactions.filter(
-      (interaction) => interaction.kind === "ask_user_questions" && interaction.status === "expired",
-    );
-    expect(expiredQuestions).toHaveLength(2);
-    for (const card of expiredQuestions) {
-      expect(card.result).toMatchObject({ expirationReason: "superseded_by_newer_interaction" });
-    }
+    // Only an identical repeat replaces a pending card, so the differing probes
+    // and the real question all stay pending until answered or withdrawn.
+    expect(pendingQuestions).toHaveLength(3);
+    expect(
+      interactions.filter((interaction) => interaction.status === "expired"),
+    ).toHaveLength(0);
   });
 
   it("sweeps historical confirmation pile-ups idempotently per issue, kind, and agent", async () => {

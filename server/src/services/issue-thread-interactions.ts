@@ -588,6 +588,36 @@ function isEquivalentCreateRequest(
   );
 }
 
+// A pending ask_user_questions card may only be replaced automatically by an
+// exact repeat of itself: the same normalized payload (question/option ids,
+// text and flags) with the same resolver authority, addressee and
+// continuation. Anything else is an independent request and stays pending
+// until it is answered or explicitly withdrawn. Origin fields (idempotency
+// key, source comment/run) are not compared; the repeat keeps its own.
+function isEquivalentQuestionRepeat(
+  row: IssueThreadInteractionRow,
+  input: CreateIssueThreadInteraction,
+  policy: ReturnType<typeof resolveInteractionPolicy>,
+  actor: InteractionActor,
+) {
+  return (
+    row.kind === input.kind &&
+    row.requestedResolverPolicy === policy.requestedResolverPolicy &&
+    row.effectiveResolverPolicy === policy.effectiveResolverPolicy &&
+    row.resolverPolicyProvenance === policy.resolverPolicyProvenance &&
+    row.effectiveResolverPolicySource ===
+      policy.effectiveResolverPolicySource &&
+    (row.addresseeAgentId ?? null) === (input.addresseeAgentId ?? null) &&
+    (row.addresseeUserId ?? null) === (input.addresseeUserId ?? null) &&
+    row.continuationPolicy === input.continuationPolicy &&
+    (row.title ?? null) === (input.title ?? null) &&
+    (row.summary ?? null) === (input.summary ?? null) &&
+    (row.createdByAgentId ?? null) === (actor.agentId ?? null) &&
+    (row.createdByUserId ?? null) === (actor.userId ?? null) &&
+    isDeepStrictEqual(row.payload, input.payload)
+  );
+}
+
 /**
  * Parse a stored interaction `result` blob tolerantly. Rows persisted by older
  * builds can carry a `result` shape that predates the current schema — e.g. a
@@ -932,9 +962,9 @@ function buildSupersededByNewerRequestResult(replacementInteractionId: string) {
   } as const;
 }
 
-// An agent that posts a fresh ask_user_questions while its own earlier ones on
-// the same issue are still pending has replaced them — the newer card carries
-// the real ask, so the stale siblings auto-expire (PAP-437). Mirrors the
+// Only a full, equivalent repeat of an earlier pending ask_user_questions
+// (see isEquivalentQuestionRepeat) auto-expires the older card (PAP-437);
+// other pending questions from the same agent stay open. Mirrors the
 // `superseded_by_comment` shape (ask_user_questions results key expiry off
 // `expirationReason`, not `outcome`) so the UI can hide them cleanly.
 function buildSupersededByNewerInteractionResult(
@@ -3511,10 +3541,12 @@ export function issueThreadInteractionService(
 
           // An agent replacing its own still-pending card supersedes the older
           // one so the thread never accumulates stale sibling cards. This covers
-          // request_confirmation drafts and ask_user_questions (PAP-437: probe
-          // question cards that agents never withdrew). Each kind keeps its own
-          // result shape. Scoped strictly to the same agent + issue + kind, so
-          // other agents' or other kinds' pending cards are untouched.
+          // request_confirmation drafts and ask_user_questions. Each kind keeps
+          // its own result shape. Scoped strictly to the same agent + issue +
+          // kind, so other agents' or other kinds' pending cards are untouched.
+          // ask_user_questions additionally requires an exact repeat of the
+          // older card (see isEquivalentQuestionRepeat); independent questions
+          // stay pending and are retired only by an explicit withdrawal.
           const canSupersedeSiblingCards =
             options.supersedePendingSiblingInteractions !== false &&
             ((data.kind === "request_confirmation" &&
@@ -3534,27 +3566,44 @@ export function issueThreadInteractionService(
             data.kind === "ask_user_questions"
               ? buildSupersededByNewerInteractionResult(row.id)
               : buildSupersededByNewerRequestResult(row.id);
-          const supersededRows = await tx
-            .update(issueThreadInteractions)
-            .set({
-              status: "expired",
-              result: supersededResult,
-              resolvedByAgentId: actor.agentId,
-              resolvedByUserId: actor.userId ?? null,
-              resolvedAt: now,
-              updatedAt: now,
-            })
-            .where(
-              and(
-                eq(issueThreadInteractions.companyId, issue.companyId),
-                eq(issueThreadInteractions.issueId, issue.id),
-                eq(issueThreadInteractions.kind, data.kind),
-                eq(issueThreadInteractions.createdByAgentId, actor.agentId),
-                eq(issueThreadInteractions.status, "pending"),
-                ne(issueThreadInteractions.id, row.id),
-              ),
-            )
-            .returning();
+          const siblingScope = and(
+            eq(issueThreadInteractions.companyId, issue.companyId),
+            eq(issueThreadInteractions.issueId, issue.id),
+            eq(issueThreadInteractions.kind, data.kind),
+            eq(issueThreadInteractions.createdByAgentId, actor.agentId),
+            eq(issueThreadInteractions.status, "pending"),
+            ne(issueThreadInteractions.id, row.id),
+          );
+          const equivalentQuestionIds =
+            data.kind === "ask_user_questions"
+              ? (await tx.select().from(issueThreadInteractions).where(siblingScope))
+                  .filter((sibling) =>
+                    isEquivalentQuestionRepeat(sibling, data, policy, actor),
+                  )
+                  .map((sibling) => sibling.id)
+              : null;
+          const supersededRows =
+            equivalentQuestionIds?.length === 0
+              ? []
+              : await tx
+                  .update(issueThreadInteractions)
+                  .set({
+                    status: "expired",
+                    result: supersededResult,
+                    resolvedByAgentId: actor.agentId,
+                    resolvedByUserId: actor.userId ?? null,
+                    resolvedAt: now,
+                    updatedAt: now,
+                  })
+                  .where(
+                    and(
+                      siblingScope,
+                      equivalentQuestionIds
+                        ? inArray(issueThreadInteractions.id, equivalentQuestionIds)
+                        : undefined,
+                    ),
+                  )
+                  .returning();
           for (const supersededRow of supersededRows) {
             await resolveLinkedToolActionRequests(tx, supersededRow, {
               status: "expired",
